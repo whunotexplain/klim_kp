@@ -32,7 +32,7 @@ class MainWindowUI(QWidget):
         
         self.btn_load = StyledButton("ЗАГРУЗИТЬ РЕЗЮМЕ (.docx)", "#e74c3c")
         self.btn_analyze = StyledButton("АНАЛИЗ И СОРТИРОВКА", "#c0392b")
-        self.btn_reset = StyledButton("СБРОСИТЬ ФИЛЬТРЫ", "#3498db")  # Новая кнопка
+        self.btn_reset = StyledButton("СБРОСИТЬ ФИЛЬТРЫ", "#3498db")
         
         btn_layout.addWidget(self.btn_load)
         btn_layout.addWidget(self.btn_analyze)
@@ -73,9 +73,7 @@ class MainWindowUI(QWidget):
     
     def reset_filters(self):
         """Сброс фильтров к значениям по умолчанию"""
-        print("Сброс фильтров...")
-        
-        # Категории
+        # Категории - обе выбраны по умолчанию
         self.chk_suitable.setChecked(True)
         self.chk_not.setChecked(True)
         
@@ -91,9 +89,9 @@ class MainWindowUI(QWidget):
         self.sal_from.setValue(0)
         self.sal_to.setValue(0)
         
-        # Образование
+        # Образование - все выбраны по умолчанию
         for chk in self.edu_checkboxes.values():
-            chk.setChecked(False)
+            chk.setChecked(True)
     
     def create_filter_box(self):
         """Создание панели фильтров"""
@@ -121,27 +119,27 @@ class MainWindowUI(QWidget):
         grid.setVerticalSpacing(18)
         grid.setHorizontalSpacing(20)
 
-        # Категории
+        # Категории (левая колонка)
         self.chk_suitable = QCheckBox("Подходит")
         self.chk_not = QCheckBox("Не подходит")
         grid.addWidget(self.chk_suitable, 0, 0)
-        grid.addWidget(self.chk_not, 0, 1)
+        grid.addWidget(self.chk_not, 1, 0)
 
         # Метки
-        grid.addWidget(QLabel("Возраст от:"), 1, 0, Qt.AlignmentFlag.AlignRight)
-        grid.addWidget(QLabel("до:"), 2, 0, Qt.AlignmentFlag.AlignRight)
-        grid.addWidget(QLabel("Стаж от:"), 3, 0, Qt.AlignmentFlag.AlignRight)
-        grid.addWidget(QLabel("до:"), 4, 0, Qt.AlignmentFlag.AlignRight)
-        grid.addWidget(QLabel("ЗП от:"), 5, 0, Qt.AlignmentFlag.AlignRight)
-        grid.addWidget(QLabel("до:"), 6, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("Возраст от:"), 2, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("до:"), 3, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("Стаж от:"), 4, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("до:"), 5, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("ЗП от:"), 6, 0, Qt.AlignmentFlag.AlignRight)
+        grid.addWidget(QLabel("до:"), 7, 0, Qt.AlignmentFlag.AlignRight)
 
         # SpinBox'ы
-        self.age_from = FilterSpinBox(); self.age_from.setRange(0, 100); self.age_from.setValue(0)
-        self.age_to = FilterSpinBox(); self.age_to.setRange(0, 100); self.age_to.setValue(0)
-        self.exp_from = FilterSpinBox(); self.exp_from.setRange(0, 50); self.exp_from.setValue(0)
-        self.exp_to = FilterSpinBox(); self.exp_to.setRange(0, 50); self.exp_to.setValue(0)
-        self.sal_from = FilterSpinBox(); self.sal_from.setRange(0, 999999); self.sal_from.setValue(0)
-        self.sal_to = FilterSpinBox(); self.sal_to.setRange(0, 999999); self.sal_to.setValue(0)
+        self.age_from = FilterSpinBox(); self.age_from.setRange(0, 100)
+        self.age_to = FilterSpinBox(); self.age_to.setRange(0, 100)
+        self.exp_from = FilterSpinBox(); self.exp_from.setRange(0, 50)
+        self.exp_to = FilterSpinBox(); self.exp_to.setRange(0, 50)
+        self.sal_from = FilterSpinBox(); self.sal_from.setRange(0, 999999)
+        self.sal_to = FilterSpinBox(); self.sal_to.setRange(0, 999999)
 
         # Устанавливаем специальные тексты для 0
         self.age_from.setSpecialValueText("Не важно")
@@ -151,17 +149,17 @@ class MainWindowUI(QWidget):
         self.sal_from.setSpecialValueText("Не важно")
         self.sal_to.setSpecialValueText("Не важно")
 
-        grid.addWidget(self.age_from, 1, 1)
-        grid.addWidget(self.age_to, 2, 1)
-        grid.addWidget(self.exp_from, 3, 1)
-        grid.addWidget(self.exp_to, 4, 1)
-        grid.addWidget(self.sal_from, 5, 1)
-        grid.addWidget(self.sal_to, 6, 1)
+        grid.addWidget(self.age_from, 2, 1)
+        grid.addWidget(self.age_to, 3, 1)
+        grid.addWidget(self.exp_from, 4, 1)
+        grid.addWidget(self.exp_to, 5, 1)
+        grid.addWidget(self.sal_from, 6, 1)
+        grid.addWidget(self.sal_to, 7, 1)
 
-        # Образование
+        # Образование (правая колонка, начинается с 3-го столбца)
         edu_title = QLabel("Образование")
         edu_title.setStyleSheet("color:#e74c3c; font-weight:bold; font-size:16px; margin-top:10px;")
-        grid.addWidget(edu_title, 0, 3, 1, 2, Qt.AlignmentFlag.AlignCenter)
+        grid.addWidget(edu_title, 0, 2, 1, 2, Qt.AlignmentFlag.AlignCenter)
 
         self.edu_checkboxes = {}
         row = 1
@@ -175,9 +173,12 @@ class MainWindowUI(QWidget):
         for name in edu_levels:
             chk = QCheckBox(name)
             chk.setStyleSheet("color:white; font-size:14px;")
-            grid.addWidget(chk, row, 3, 1, 2)
+            grid.addWidget(chk, row, 2, 1, 2)
             self.edu_checkboxes[name] = chk
             row += 1
+
+        # Добавляем немного растяжения внизу
+        grid.setRowStretch(8, 1)
 
         filter_box.setLayout(grid)
         return filter_box

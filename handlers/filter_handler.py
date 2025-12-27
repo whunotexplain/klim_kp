@@ -131,7 +131,7 @@ class FilterHandler:
             
             # Фильтр по зарплате
             if filters['sal_from'] > 0:
-                conditions.append("(salary >= %s OR salary = 0 OR salary IS NULL)")
+                conditions.append("salary >= %s")
                 params.append(filters['sal_from'])
             if filters['sal_to'] > 0 and filters['sal_to'] < 9999999:
                 conditions.append("salary <= %s")
