@@ -72,6 +72,7 @@ class ResumeSorterApp(QMainWindow):
             print("Подключение сигналов...")
             self.ui.btn_load.clicked.connect(self.load_resume)
             self.ui.btn_analyze.clicked.connect(self.analyze_and_sort)
+            self.ui.btn_reset.clicked.connect(self.reset_filters)  # Новая кнопка
             print("Сигналы подключены")
             
             # Загружаем кандидатов из БД если есть
@@ -134,14 +135,21 @@ class ResumeSorterApp(QMainWindow):
             print(f"Ошибка загрузки резюме: {e}")
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить резюме: {e}")
     
+    def reset_filters(self):
+        """Сброс фильтров"""
+        print("\n=== СБРОС ФИЛЬТРОВ ===")
+        self.ui.reset_filters()
+        # После сброса сразу применяем фильтры
+        self.analyze_and_sort()
+    
     def analyze_and_sort(self):
         """Анализ и сортировка"""
-        print("Анализ и сортировка...")
+        print("\n=== НАЧАЛО АНАЛИЗА ===")
         try:
             html_result = self.filter_handler.apply_filters()
             self.ui.result_display.setHtml(html_result)
             self.filter_handler.sort_files()
-            print("Анализ завершен")
+            print("=== АНАЛИЗ ЗАВЕРШЕН ===")
         except Exception as e:
             print(f"Ошибка анализа: {e}")
             QMessageBox.critical(self, "Ошибка", f"Ошибка при анализе: {e}")

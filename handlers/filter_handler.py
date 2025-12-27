@@ -1,7 +1,3 @@
-"""
-Обработчик фильтрации кандидатов.
-"""
-
 import os
 from typing import List, Dict, Any
 from database import db
@@ -21,18 +17,11 @@ class FilterHandler:
     
     def apply_filters(self) -> str:
         """Применение фильтров и возврат HTML результата"""
-        if not self.app.candidates:
-            return self._get_error_html("Сначала загрузите резюме!")
+        print("\n=== НАЧАЛО ФИЛЬТРАЦИИ ===")
         
         # Получаем настройки фильтров из UI
-        show_s = self.app.ui.chk_suitable.isChecked()
-        show_n = self.app.ui.chk_not.isChecked()
-        
-        if not (show_s or show_n):
-            return self._get_error_html("Выберите хотя бы одну категорию")
-        
-        # Параметры фильтрации
         filters = self._get_filter_params()
+        print(f"Фильтры: {filters}")
         
         # Применяем фильтры
         if db.conn:
@@ -40,76 +29,128 @@ class FilterHandler:
         else:
             filtered_candidates = self._filter_in_memory(filters)
         
+        print(f"Найдено кандидатов после фильтрации: {len(filtered_candidates)}")
+        
         return self._format_results(filtered_candidates)
     
     def _get_filter_params(self) -> Dict[str, Any]:
         """Получение параметров фильтрации из UI"""
-        return {
-            'show_suitable': self.app.ui.chk_suitable.isChecked(),
-            'show_not_suitable': self.app.ui.chk_not.isChecked(),
-            'age_from': self.app.ui.age_from.value() or 0,
-            'age_to': self.app.ui.age_to.value() or 200,
-            'exp_from': self.app.ui.exp_from.value() or 0,
-            'exp_to': self.app.ui.exp_to.value() or 100,
-            'sal_from': self.app.ui.sal_from.value() or 0,
-            'sal_to': self.app.ui.sal_to.value() or 9999999,
-            'education_levels': self._get_selected_education()
-        }
+        try:
+            show_suitable = self.app.ui.chk_suitable.isChecked()
+            show_not_suitable = self.app.ui.chk_not.isChecked()
+            
+            # Если ничего не выбрано - показываем всех
+            if not show_suitable and not show_not_suitable:
+                show_suitable = True
+                show_not_suitable = True
+            
+            age_from = self.app.ui.age_from.value()
+            age_to = self.app.ui.age_to.value()
+            
+            # Если значение 0 - значит "не важно"
+            if age_to == 0:
+                age_to = 100  # Максимальный возраст
+            
+            exp_from = self.app.ui.exp_from.value()
+            exp_to = self.app.ui.exp_to.value()
+            if exp_to == 0:
+                exp_to = 50  # Максимальный стаж
+            
+            sal_from = self.app.ui.sal_from.value()
+            sal_to = self.app.ui.sal_to.value()
+            if sal_to == 0:
+                sal_to = 9999999  # Максимальная зарплата
+            
+            return {
+                'show_suitable': show_suitable,
+                'show_not_suitable': show_not_suitable,
+                'age_from': age_from,
+                'age_to': age_to,
+                'exp_from': exp_from,
+                'exp_to': exp_to,
+                'sal_from': sal_from,
+                'sal_to': sal_to,
+                'education_levels': self._get_selected_education()
+            }
+        except Exception as e:
+            print(f"Ошибка получения параметров фильтрации: {e}")
+            return {
+                'show_suitable': True,
+                'show_not_suitable': True,
+                'age_from': 0,
+                'age_to': 100,
+                'exp_from': 0,
+                'exp_to': 50,
+                'sal_from': 0,
+                'sal_to': 9999999,
+                'education_levels': set()
+            }
     
     def _get_selected_education(self):
         """Получение выбранных уровней образования"""
         selected = set()
-        for name, chk in self.app.ui.edu_checkboxes.items():
-            if chk.isChecked():
-                selected.add(self.edu_levels[name])
+        try:
+            if hasattr(self.app.ui, 'edu_checkboxes'):
+                for name, chk in self.app.ui.edu_checkboxes.items():
+                    if chk.isChecked():
+                        selected.add(self.edu_levels[name])
+        except:
+            pass
         return selected
     
     def _filter_from_database(self, filters: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Фильтрация кандидатов из БД"""
         try:
             # Строим SQL запрос с фильтрами
-            sql = "SELECT * FROM candidates WHERE 1=1"
+            conditions = []
             params = []
             
             # Фильтр по статусу
             if filters['show_suitable'] and not filters['show_not_suitable']:
-                sql += " AND status = %s"
+                conditions.append("status = %s")
                 params.append("Подходит")
             elif filters['show_not_suitable'] and not filters['show_suitable']:
-                sql += " AND status = %s"
+                conditions.append("status = %s")
                 params.append("Не подходит")
             
-            # Фильтр по возрасту
+            # Фильтр по возрасту (только если указано значение > 0)
             if filters['age_from'] > 0:
-                sql += " AND age >= %s"
+                conditions.append("age >= %s")
                 params.append(filters['age_from'])
-            if filters['age_to'] < 200:
-                sql += " AND age <= %s"
+            if filters['age_to'] > 0 and filters['age_to'] < 100:
+                conditions.append("age <= %s")
                 params.append(filters['age_to'])
             
             # Фильтр по опыту
             if filters['exp_from'] > 0:
-                sql += " AND experience >= %s"
+                conditions.append("experience >= %s")
                 params.append(filters['exp_from'])
-            if filters['exp_to'] < 100:
-                sql += " AND experience <= %s"
+            if filters['exp_to'] > 0 and filters['exp_to'] < 50:
+                conditions.append("experience <= %s")
                 params.append(filters['exp_to'])
             
             # Фильтр по зарплате
             if filters['sal_from'] > 0:
-                sql += " AND salary >= %s"
+                conditions.append("(salary >= %s OR salary = 0 OR salary IS NULL)")
                 params.append(filters['sal_from'])
-            if filters['sal_to'] < 9999999:
-                sql += " AND salary <= %s"
+            if filters['sal_to'] > 0 and filters['sal_to'] < 9999999:
+                conditions.append("salary <= %s")
                 params.append(filters['sal_to'])
             
             # Фильтр по образованию
             if filters['education_levels']:
                 placeholders = ', '.join(['%s'] * len(filters['education_levels']))
-                sql += f" AND education IN ({placeholders})"
+                conditions.append(f"education IN ({placeholders})")
                 params.extend(filters['education_levels'])
             
+            # Собираем запрос
+            sql = "SELECT * FROM candidates"
+            if conditions:
+                sql += " WHERE " + " AND ".join(conditions)
             sql += " ORDER BY created_at DESC"
+            
+            print(f"SQL запрос: {sql}")
+            print(f"Параметры: {params}")
             
             # Выполняем запрос
             results = db.fetch_all(sql, tuple(params))
@@ -117,6 +158,8 @@ class FilterHandler:
             
         except Exception as e:
             print(f"Ошибка фильтрации из БД: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def _filter_in_memory(self, filters: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -130,23 +173,30 @@ class FilterHandler:
             if candidate.original_category == "Не подходит" and not filters['show_not_suitable']:
                 continue
             
-            # Фильтр по возрасту
-            if not (filters['age_from'] <= candidate.age <= filters['age_to']):
+            # Фильтр по возрасту (значение 0 = не важно)
+            if filters['age_from'] > 0 and candidate.age < filters['age_from']:
+                continue
+            if filters['age_to'] > 0 and candidate.age > filters['age_to']:
                 continue
             
             # Фильтр по опыту
-            if not (filters['exp_from'] <= candidate.experience <= filters['exp_to']):
+            if filters['exp_from'] > 0 and candidate.experience < filters['exp_from']:
+                continue
+            if filters['exp_to'] > 0 and candidate.experience > filters['exp_to']:
                 continue
             
             # Фильтр по зарплате
-            if candidate.salary and not (filters['sal_from'] <= candidate.salary <= filters['sal_to']):
-                continue
+            if candidate.salary:
+                if filters['sal_from'] > 0 and candidate.salary < filters['sal_from']:
+                    continue
+                if filters['sal_to'] > 0 and candidate.salary > filters['sal_to']:
+                    continue
             
             # Фильтр по образованию
             if filters['education_levels'] and candidate.education not in filters['education_levels']:
                 continue
             
-            # Преобразуем кандидата в словарь для единообразия
+            # Преобразуем кандидата в словарь
             filtered.append({
                 'fio': candidate.fio,
                 'age': candidate.age,
@@ -167,9 +217,10 @@ class FilterHandler:
         
         cards = []
         for candidate in candidates:
-            color = candidate['category_color']
-            about = candidate['about'] or "—"
-            edu_str = self._edu_level_str(candidate['education'])
+            color = candidate.get('category_color', '#e74c3c')
+            about = candidate.get('about') or "—"
+            edu_str = self._edu_level_str(candidate.get('education', 0))
+            salary = candidate.get('salary') or '—'
             
             cards.append(f"""
             <div style="background:#111;padding:22px;margin:15px 0;border-radius:16px;
@@ -178,7 +229,7 @@ class FilterHandler:
                 <p style="margin:8px 0 0;color:{color};font-size:18px;font-weight:bold;">{candidate['status']}</p>
                 <p style="margin:10px 0;color:#ddd;">
                     Возраст: <b>{candidate['age']}</b>  |  Стаж: <b>{candidate['experience']} лет</b>  |
-                    Образование: <b>{edu_str}</b>  |  ЗП: <b>{candidate['salary'] or '—'}</b>
+                    Образование: <b>{edu_str}</b>  |  ЗП: <b>{salary}</b>
                 </p>
                 <p style="margin:10px 0 0;color:#aaa;font-style:italic;">О себе: {about}</p>
             </div>
@@ -203,12 +254,15 @@ class FilterHandler:
     
     def sort_files(self):
         """Сортировка файлов по категориям"""
-        for candidate in self.app.candidates.values():
-            folder = os.path.join(self.app.sorted_dir, candidate.original_category)
-            os.makedirs(folder, exist_ok=True)
-            
-            new_path = os.path.join(folder, candidate.filename)
-            if os.path.exists(candidate.source_file) and not os.path.exists(new_path):
-                os.replace(candidate.source_file, new_path)
-                # Обновляем путь в данных кандидата
-                candidate.source_file = new_path
+        try:
+            for candidate in self.app.candidates.values():
+                if hasattr(candidate, 'original_category') and hasattr(candidate, 'filename') and hasattr(candidate, 'source_file'):
+                    folder = os.path.join(self.app.sorted_dir, candidate.original_category)
+                    os.makedirs(folder, exist_ok=True)
+                    
+                    new_path = os.path.join(folder, candidate.filename)
+                    if os.path.exists(candidate.source_file) and not os.path.exists(new_path):
+                        os.replace(candidate.source_file, new_path)
+                        candidate.source_file = new_path
+        except Exception as e:
+            print(f"Ошибка сортировки файлов: {e}")

@@ -32,9 +32,11 @@ class MainWindowUI(QWidget):
         
         self.btn_load = StyledButton("ЗАГРУЗИТЬ РЕЗЮМЕ (.docx)", "#e74c3c")
         self.btn_analyze = StyledButton("АНАЛИЗ И СОРТИРОВКА", "#c0392b")
+        self.btn_reset = StyledButton("СБРОСИТЬ ФИЛЬТРЫ", "#3498db")  # Новая кнопка
         
         btn_layout.addWidget(self.btn_load)
         btn_layout.addWidget(self.btn_analyze)
+        btn_layout.addWidget(self.btn_reset)
         btn_layout.addStretch()
         main_layout.addLayout(btn_layout)
 
@@ -65,6 +67,33 @@ class MainWindowUI(QWidget):
             QCheckBox::indicator:checked { background: #e74c3c; }
             QLabel { color: #ddd; }
         """)
+        
+        # Сброс фильтров при запуске
+        self.reset_filters()
+    
+    def reset_filters(self):
+        """Сброс фильтров к значениям по умолчанию"""
+        print("Сброс фильтров...")
+        
+        # Категории
+        self.chk_suitable.setChecked(True)
+        self.chk_not.setChecked(True)
+        
+        # Возраст
+        self.age_from.setValue(0)
+        self.age_to.setValue(0)
+        
+        # Стаж
+        self.exp_from.setValue(0)
+        self.exp_to.setValue(0)
+        
+        # Зарплата
+        self.sal_from.setValue(0)
+        self.sal_to.setValue(0)
+        
+        # Образование
+        for chk in self.edu_checkboxes.values():
+            chk.setChecked(False)
     
     def create_filter_box(self):
         """Создание панели фильтров"""
@@ -113,6 +142,14 @@ class MainWindowUI(QWidget):
         self.exp_to = FilterSpinBox(); self.exp_to.setRange(0, 50); self.exp_to.setValue(0)
         self.sal_from = FilterSpinBox(); self.sal_from.setRange(0, 999999); self.sal_from.setValue(0)
         self.sal_to = FilterSpinBox(); self.sal_to.setRange(0, 999999); self.sal_to.setValue(0)
+
+        # Устанавливаем специальные тексты для 0
+        self.age_from.setSpecialValueText("Не важно")
+        self.age_to.setSpecialValueText("Не важно")
+        self.exp_from.setSpecialValueText("Не важно")
+        self.exp_to.setSpecialValueText("Не важно")
+        self.sal_from.setSpecialValueText("Не важно")
+        self.sal_to.setSpecialValueText("Не важно")
 
         grid.addWidget(self.age_from, 1, 1)
         grid.addWidget(self.age_to, 2, 1)

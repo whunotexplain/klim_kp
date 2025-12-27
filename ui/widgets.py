@@ -52,4 +52,4 @@ class FilterSpinBox(QSpinBox):
                 width:20px;
             }
         """)
-        self.setSpecialValueText(" ")
+        self.setSpecialValueText("Не важно")  # Изменено с " " на "Не важно"
